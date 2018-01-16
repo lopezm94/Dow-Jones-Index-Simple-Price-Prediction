@@ -1,0 +1,177 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+1. treatment of lost values (missing values)
+2. treatment of anomalous values (outliers)
+3. treatment of incoherent or incorrect values
+4. coding of non-continuous or non-ordered variables (nominal or binary)
+5. possible elimination of irrelevant or redundant variables (feature selection)
+6. creation of new variables that can be useful (feature extraction)
+7. normalization of the variables (e.g.standardization)
+8. transformation of the variables (e.g.correction of serious skewness and/or kurtosis)
+
+
+## Procesamiento del conjunto de datos
+
+El objetivo de esta sección es hacer una primera toma de contacto con nuestros datos para tratar de entender su comportamiento para en las siguientes secciones facilitar su análisis.
+
+Sobre los datos de nuestro dataset, disponemos de 750 registros. Estos, se distinguen en dos periodos distintos de tiempo, 360 registros del primer cuatrimestre del años y 390 del segundo cuatrimestre del año. Hecho importante que nos puede servir a la hora de entender el comportamiento de los datos.
+
+Además, en cada registro disponemos de la información de los siguientes atributos:
+
+- quarter: Cuatrimestre del año (1 = Jan-Mar, 2 = Apr-Jun)
+- stock: Símbolo de las acciones
+- date: Último dia laboral del trabajo
+- open: Precio de las acciones al principio de la semana
+- high: Precio más alto durante la semana
+- low: Precio más bajo durante la semana
+- close: Precio de las acciones durante el cierre de la semana
+- volume: Número de las acciones intercambiadas durante la semana
+- percent_change_price: el cambio porcentual en el precio durante la semana
+- percent_chagne_volume_over_last_wek: Cambio porcentual en el número de acciones de acciones negociadas para esta semana en comparación de la anterior.
+- previous_weeks_volume: La cantidad de acciones que se intercambiaron en la semana anterior.
+-	next_weeks_open: El precio de apertura de las acciones en la semana siguiente.
+- next_weeks_close: El precio de cierre de las acciones en la semana siguiente.
+-	percent_change_next_weeks_price: El cambio porcentual en el precio de las acciones en la semana siguiente.
+- days_to_next_dividend: La cantidad de días hasta el próximo dividendo.
+- percent_return_next_dividend: El porcentaje de rendimiento en el siguiente dividendo.
+
+
+### Preproceso de datos
+
+En la primera toma de contacto, hemos podido comprobar, que tal y como se nos indica en la información general de nuestro dataset no existe ningún missing value.  Este hecho nos ha facilitado el poder comenzar la búsqueda de outliers sin un pre tratamiento de los datos. Finalmente a partir de ver un resumen de los datos hemos podido observar que todos los atributos que contenian dolares también se han tenido que transformar a valores numèricos, y que atributos eran discontinuos para pasaros a factores antes de decidir los atributos de entradas y salidas. Además en alguno de los factores les hemos asignados nombres a sus diferentes niveles para que sea más facil la visualización de datos. Sobre todo remarcar el atributo de la fecha de cada registro, el cual le hemos asignado a partir de la fecha la semana que le corresponde a su cuatrimestre para que sea más fácil en el futuro su interpretación.
+
+```{r}
+data$open <- as.numeric(sub("\\$","", data$open))
+data$high <- as.numeric(sub("\\$","", data$high))
+data$low <- as.numeric(sub("\\$","", data$low))
+data$close <- as.numeric(sub("\\$","", data$close))
+data$next_weeks_open <- as.numeric(sub("\\$","", data$next_weeks_open))
+data$next_weeks_close <- as.numeric(sub("\\$","", data$next_weeks_close))
+
+data$f.quarter    <- as.factor(data$quarter)
+data$f.quarter <- factor(c("Primero", "Segundo"))
+data$f.stock    <- as.factor(data$stock)
+data$f.days_to_next_dividend <- as.factor(data$days_to_next_dividend)
+data$f.data   <- as.factor(data$date)
+
+
+training <-  data[which(data$quarter ==  1),] 
+training$f.data <- factor(c('Sem1','Sem2','Sem3','Sem4','Sem5','Sem6','Sem7','Sem8','Sem9','Sem10','Sem11','Sem12'))
+training <- training[c(-1,-2,-3,-10,-11,-12,-13,-15)]
+test <-  data[which(data$quarter ==  2),] 
+test$f.data <- factor(c('Sem1','Sem2','Sem3','Sem4','Sem5','Sem6','Sem7','Sem8','Sem9','Sem10','Sem11','Sem12','Sem13'))
+test <- test[c(-1,-2,-3,-10,-11,-12,-13,-15)]
+
+
+
+```
+
+
+### Características de extracción y selección
+
+Por una banda, se han eliminado todos aquellos atributos que hacen referencia a la semana anterior y siguiente y que ya disponemos de esta información en cada fila de la semana siguiente a la que hace referencia en nuestros y de esta manera podemos simplificar nuestro problema lo suficiente y ayudar a la futura clasificación y clustering.
+
+De esta manera eliminamos todos los atributos que hablan de valores de la semana anterior y siguiente, exceptuando percent_change_next_weeks_price, ya que habla de la semana siguiente pero como comparativa de la actual, un atributo que facilitará el objetivo de nuestro trabajo.
+
+Además el objetivo del tratamiento de estos datos, es únicamente, saber si habrá un incremento o decremento del valor de cada acción. Es por eso que hemos definido como valor de extracción el atributo: stock, ya que es el valor que queremos acabar prediciendo y comprobar si el valor de la compañía acabará subiendo o bajando.
+
+Finalmente nos quedamos con el siguiente conjunto de datos:
+
+```{r}
+summary(training)
+names(training)
+```
+
+7. normalization of the variables (e.g.standardization)
+8. transformation of the variables (e.g.correction of serious skewness and/or kurtosis
+
+### Estandarización de los datos
+
+En este apartado tratamos aquellas variables contínuas que creemos que pueden ser estandarizadas de alguna manera de que siguiendo un modelo pueden ayudarnos en su utilidad. Partimos de 3 unidades distintas en nuestros atributos contínuos: valor de moneda (en Dólares), porcentages, valor de las acciones.
+
+Tanto en las variables que representan el valor de una moneda como las que representan un valor porcentual, no tiene sentido de que se estandaricen ya que  
+
+
+
+
+### Visualización
+
+
+
+```{r}
+#Primer quatri
+v <- array(dim=12)
+med <- array(dim=12)
+
+
+i <- 1
+for(sem in 1:12) {
+  
+  v[i] <- mean(training$close[(which(training$f.data == sem))])
+  med[i] <- median(training$close[(which(training$f.data == sem))])
+  i <- i + 1
+  
+}
+
+library(plotly)
+plot_ly( x= 1:12 , y= v  , name= 'Media',type="scatter", mode = 'lines') %>%
+  add_trace(y = med, name = 'Mediana' ,mode = 'lines')
+
+```
+
+
+
+```{r}
+
+dif_v <- array(dim=length(levels(training$f.stock)))
+
+conj <- levels(training$f.stock)
+training2 <- training[,c('open','f.stock','f.data')] 
+for(i in 1:30) {
+  
+  a <- conj[i]
+  
+  prim <- filter(training2, f.stock == a, f.data == '1')
+  ult <- filter(training2, f.stock == a, f.data == '12')
+  
+ dif_v[i] <- prim$open - ult$open
+}
+
+
+boxplot(dif_v)
+
+
+```
+
+
+
+
+### Clustering
+
+
+```{r}
+# Determine number of clusters   (ELBOW)
+mydata <- na.omit(training)
+wss <- (nrow(mydata)-1)*sum(apply(mydata,2,var))
+
+  for (i in 2:15) wss[i] <- sum(kmeans(mydata,
+                                       centers=i)$withinss)
+plot(1:15, wss, type="b", xlab="Number of Clusters",
+     ylab="Within groups sum of squares",
+     main="Assessing the Optimal Number of Clusters with the Elbow Method",
+     pch=20, cex=2)
+
+set.seed(7)
+km2 = kmeans(dat, 6, nstart=100)
+
+# Examine the result of the clustering algorithm
+km2
+
+# Plot results
+plot(dat, col =(km2$cluster +1) , main="K-Means result with 6 clusters", pch=20, cex=2)
+
+
+```
