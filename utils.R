@@ -58,10 +58,10 @@ getData = function(
     return(processed_data)
 }
 
-extractNormalizedTraining = function(x) {
+extractNormalizedTraining = function(x, p=0.8) {
     rows = dim(x)[1]
     columns = dim(x)[2]
-    training <- x[1:(rows*0.8),]
+    training <- x[1:(rows*p),]
     for (c in 1:columns){
         column_data <- training[,c]
         training[,c] <- (column_data - mean(column_data)) / sd(column_data)
@@ -69,11 +69,11 @@ extractNormalizedTraining = function(x) {
     return(training)
 }
 
-extractNormalizedTest = function(x) {
+extractNormalizedTest = function(x, p=0.8) {
     rows = dim(x)[1]
     columns = dim(x)[2]
-    test <- x[(rows*0.8+1):rows,]
-    training <- x[1:(rows*0.8),]
+    test <- x[(rows*p+1):rows,]
+    training <- x[1:(rows*p),]
     for (c in 1:columns){
         column_data <- training[,c]
         test[,c] <- (test[,c] - mean(column_data)) / sd(column_data)
@@ -82,12 +82,14 @@ extractNormalizedTest = function(x) {
 }
 
 #Estimates Root Mean Square Error given a model or two vectors
-rmse = function(x, y) {
+rmse = function(model, test_data) {
     result <- NA
-    if (missing(y)) { #x is a model
-        result <- mean(x$residuals^2, na.rm=TRUE)
-    } else { #x is the result of the prediction
-        result <- mean((x-y)^2, na.rm=TRUE)
+    if (missing(test_data)) {
+        result <- mean(model$residuals^2, na.rm=TRUE)
+    } else {
+        real_values <- test_data$percent_change_next_weeks_price
+        prediction <- predict(model, test_data)
+        result <- mean((prediction-real_values)^2, na.rm=TRUE)
     }
     return(sqrt(result))
 }
@@ -99,14 +101,30 @@ MASE <- function(f,y) { # f = vector with forecasts, y = vector with actuals
 }
 
 #Estimates Mean Absolute Scaled Error given a model or two vectors
-mase = function(x, y) {
+mase = function(model, test_data) {
     result <- NA
-    if (missing(y)) { #x is a model
-        result <- MASE(x$fitted, x$residuals+x$fitted)
-    } else { #x is the result of the prediction
-        result <- MASE(x, y)
+    if (missing(test_data)) {
+        result <- MASE(model$fitted, model$residuals+model$fitted)
+    } else {
+        real_values <- test_data$percent_change_next_weeks_price
+        prediction <- predict(model, test_data)
+        result <- MASE(prediction, real_values)
     }
     return(sqrt(result))
+}
+
+#Time series cross validation. k: number of partitions
+cross_validate = function(model_builder, data_set, k=5, ...) {
+    cum_error = 0
+    for (i in 1:(k-1)) {
+        partition <- i/k
+        test <- extractNormalizedTest(data_set, p=partition)
+        training <- extractNormalizedTraining(data_set, p=partition)
+        model <- model_builder(training, ...)
+        cum_error = cum_error + mase(model, test)
+    }
+    average = cum_error/k
+    return(average)
 }
 
 normalize = function(x) {
