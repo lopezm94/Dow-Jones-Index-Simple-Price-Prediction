@@ -20,6 +20,8 @@ data$percent_change_next_weeks_price <- as.numeric(data$percent_change_next_week
 data$days_to_next_dividend <- as.numeric(data$days_to_next_dividend) #15
 data$percent_return_next_dividend <- as.numeric(data$percent_return_next_dividend) #16
 
+## Order Data
+data <- data[order(data$date),]
 ## Remove useless rows (rows containing NA)
 data <- data[which(!is.na(data$previous_weeks_volume)),]
 
@@ -28,8 +30,8 @@ data <- data[which(!is.na(data$previous_weeks_volume)),]
 ## Make new dataset only with desired rows
 getData = function(
         stock_name=FALSE,
-        percent_change_price=TRUE, percent_change_volume_over_last_wk=TRUE,
-        days_to_next_dividend=TRUE, percent_return_next_dividend=TRUE
+        percent_change_price=FALSE, percent_change_volume_over_last_wk=FALSE,
+        days_to_next_dividend=FALSE, percent_return_next_dividend=FALSE
     ) {
     #Copy Data
     processed_data = data
@@ -63,6 +65,7 @@ extractNormalizedTraining = function(x, p=0.8) {
     columns = dim(x)[2]
     training <- x[1:(rows*p),]
     for (c in 1:columns){
+        if (is.factor(x[,c])) next
         column_data <- training[,c]
         training[,c] <- (column_data - mean(column_data)) / sd(column_data)
     }
@@ -75,6 +78,7 @@ extractNormalizedTest = function(x, p=0.8) {
     test <- x[(rows*p+1):rows,]
     training <- x[1:(rows*p),]
     for (c in 1:columns){
+        if (is.factor(x[,c])) next
         column_data <- training[,c]
         test[,c] <- (test[,c] - mean(column_data)) / sd(column_data)
     }
@@ -95,7 +99,7 @@ rmse = function(model, test_data) {
 }
 
 MASE <- function(f,y) { # f = vector with forecasts, y = vector with actuals
-    if(length(f)!=length(y)){ stop("Vector length is not equal") }
+    if(length(f)!=length(y)){ show(f); show(y); stop("Vector length is not equal") }
     n <- length(f)
     return(mean(abs((y - f) / ((1/(n-1)) * sum(abs(y[2:n]-y[1:n-1]))))))
 }

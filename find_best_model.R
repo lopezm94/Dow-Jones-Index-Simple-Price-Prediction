@@ -2,7 +2,10 @@ source("utils.R")
 source("regression_models.R")
 
 #Collect data
-data_set <- getData()
+data_set <- getData(percent_change_price=TRUE,
+    percent_change_volume_over_last_wk=TRUE,
+    days_to_next_dividend=TRUE,
+    percent_return_next_dividend=TRUE)
 
 #Extract normalized training and test sets
 training <- extractNormalizedTraining(data_set)
@@ -27,7 +30,7 @@ find_best = function(model_builder, ...) {
     if (min_error > error) {
         min_error <<- error
         final_model <<- model
-        final_cross_validation_error <<- cross_validate(model_builder, data_set)
+        final_cross_validation_error <<- cross_validate(model_builder, data_set, ...)
     }
 }
 
@@ -53,7 +56,7 @@ for (cost in exp_seq(2^-5,2^11,2^2)) {
 
 message("One Hidden Layer MLP...")
 for (size in seq(2,20,6)) {
-    for (decay in seq(0.001,0.2,0.004)) {
+    for (decay in seq(0.001,0.5,0.004)) {
         find_best(model.mlp, maxit=500, size=size, decay=decay, trace=FALSE)
     }
 }
