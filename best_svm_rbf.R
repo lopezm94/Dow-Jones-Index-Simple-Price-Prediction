@@ -57,7 +57,15 @@ real_values <- test$percent_change_next_weeks_price
 prediction <- predict(final_model, test)
 xdata <- seq(1:length(real_values))
 
-plot(xdata, real_values, col="blue", pch="*", lty=1,
-    ylim=c(min(real_values, prediction),max(real_values, prediction)) )
-points(xdata, prediction, col="red", pch="*")
-points(xdata, training$percent_change_next_weeks_price, col="yellow", pch="*")
+#plot(xdata, real_values, col="blue", pch="*", lty=1,
+#    ylim=c(min(real_values, prediction),max(real_values, prediction)) )
+#points(xdata, prediction, col="red", pch="*")
+#points(xdata, training$percent_change_next_weeks_price, col="yellow", pch="*")
+
+
+plot_ly(x = xdata, y = real_values, name = 'Real values', type = 'scatter', mode = 'markers') %>%
+  add_trace(y = prediction, name = 'Predictions', mode = 'markers') %>%
+  add_trace(y = training$percent_change_next_weeks_price, name = 'Real training data', mode = 'markers') %>%
+  layout(title = 'Difference between real and predicted',
+         yaxis = list(title="Result"),
+         xaxis = list(title="Input"))
