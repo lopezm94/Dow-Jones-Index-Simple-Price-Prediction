@@ -1,45 +1,113 @@
-
-## Open data
+### Preprocess Data
 
 data <- read.csv("dow_jones_index.data", header = TRUE, quote = "\"", dec = ".", check.names=TRUE)
 
-
-## Pre proceso de los datos tal y como los vamos a tratar---------------------------------------------
-data$f.quarter    <- as.factor(data$quarter) #1
-data$f.quarter <- factor(c("Primero", "Segundo")) #2
-data$f.stock    <- as.factor(data$stock) #3
-data$f.data   <- as.factor(data$date) #4
-
-data$open <- as.numeric(sub("\\$","", data$open)) #5
-data$high <- as.numeric(sub("\\$","", data$high)) #6
-data$low <- as.numeric(sub("\\$","", data$low)) #7
-data$close <- as.numeric(sub("\\$","", data$close)) #8
+## Encode columns
+data$quarter    <- as.factor(data$quarter) #1
+data$stock    <- as.factor(data$stock) #2
+data$date   <- as.factor(data$date) #3
+data$open <- as.numeric(sub("\\$","", data$open)) #4
+data$high <- as.numeric(sub("\\$","", data$high)) #5
+data$low <- as.numeric(sub("\\$","", data$low)) #6
+data$close <- as.numeric(sub("\\$","", data$close)) #7
+data$volume <- as.numeric(data$volume) #8
 data$percent_change_price <- as.numeric(data$percent_change_price) #9
 data$percent_change_volume_over_last_wk <- as.numeric(data$percent_change_volume_over_last_wk) #10
 data$previous_weeks_volume <- as.numeric(data$previous_weeks_volume) #11
 data$next_weeks_open <- as.numeric(sub("\\$","", data$next_weeks_open)) #12
 data$next_weeks_close <- as.numeric(sub("\\$","", data$next_weeks_close)) #13
-data$percent_change_next_weeks_price <- as.numeric(data$percent_change_volume_over_last_wk) #14
+data$percent_change_next_weeks_price <- as.numeric(data$percent_change_next_weeks_price) #14
 data$days_to_next_dividend <- as.numeric(data$days_to_next_dividend) #15
-data$percent_return_next_dividend <- as.numeric(data$percent_change_price) #16
+data$percent_return_next_dividend <- as.numeric(data$percent_return_next_dividend) #16
 
-#Create training and test data
-training <-  data[which(data$quarter ==  1),]
-training$f.data <- factor(c(1,2,3,4,5,6,7,8,9,10,11,12))
-##training$f.data <- factor(c('Sem1','Sem2','Sem3','Sem4','Sem5','Sem6','Sem7','Sem8','Sem9','Sem10','Sem11','Sem12'))
-training <- training[c(-1,-2,-3,-10,-11,-12,-13,-15)]
-test <-  data[which(data$quarter ==  2),]
-test$f.data <- factor(c(1,2,3,4,5,6,7,8,9,10,11,12))
-##test$f.data <- factor(c('Sem1','Sem2','Sem3','Sem4','Sem5','Sem6','Sem7','Sem8','Sem9','Sem10','Sem11','Sem12','Sem13'))
-test <- test[c(-1,-2,-3,-10,-11,-12,-13,-15)]
+## Remove useless rows (rows containing NA)
+data <- data[which(!is.na(data$previous_weeks_volume)),]
 
+### Auxiliar Functions
 
+## Make new dataset only with desired rows
+getData = function(
+        stock_name=FALSE,
+        percent_change_price=TRUE, percent_change_volume_over_last_wk=TRUE,
+        days_to_next_dividend=TRUE, percent_return_next_dividend=TRUE
+    ) {
+    #Copy Data
+    processed_data = data
 
-## FIN-----------------------------------------------------------------------------------------------------
+    #Remove column if not specified
+    undesired_columns = c(1,3,4,5,6,7,8,11,12,13,14)
+    if (!stock_name) {
+        undesired_columns <- c(undesired_columns,2)
+    }
+    if (!percent_change_price) {
+        undesired_columns <- c(undesired_columns,9)
+    }
+    if (!percent_change_volume_over_last_wk) {
+        undesired_columns <- c(undesired_columns,10)
+    }
+    if (!days_to_next_dividend) {
+        undesired_columns <- c(undesired_columns,15)
+    }
+    if (!percent_return_next_dividend) {
+        undesired_columns <- c(undesired_columns,16)
+    }
 
-#getFeatureTable = function(window_size=1, )
+    processed_data <- processed_data[-undesired_columns]
+    processed_data[["percent_change_next_weeks_price"]] <- data$percent_change_next_weeks_price
 
-### FUNCIONES AUXILIARES QUE HE ENCONTRADO
+    return(processed_data)
+}
+
+extractNormalizedTraining = function(x) {
+    rows = dim(x)[1]
+    columns = dim(x)[2]
+    training <- x[1:(rows*0.8),]
+    for (c in 1:columns){
+        column_data <- training[,c]
+        training[,c] <- (column_data - mean(column_data)) / sd(column_data)
+    }
+    return(training)
+}
+
+extractNormalizedTest = function(x) {
+    rows = dim(x)[1]
+    columns = dim(x)[2]
+    test <- x[(rows*0.8+1):rows,]
+    training <- x[1:(rows*0.8),]
+    for (c in 1:columns){
+        column_data <- training[,c]
+        test[,c] <- (test[,c] - mean(column_data)) / sd(column_data)
+    }
+    return(test)
+}
+
+#Estimates Root Mean Square Error given a model or two vectors
+rmse = function(x, y) {
+    result <- NA
+    if (missing(y)) { #x is a model
+        result <- mean(x$residuals^2, na.rm=TRUE)
+    } else { #x is the result of the prediction
+        result <- mean((x-y)^2, na.rm=TRUE)
+    }
+    return(sqrt(result))
+}
+
+MASE <- function(f,y) { # f = vector with forecasts, y = vector with actuals
+    if(length(f)!=length(y)){ stop("Vector length is not equal") }
+    n <- length(f)
+    return(mean(abs((y - f) / ((1/(n-1)) * sum(abs(y[2:n]-y[1:n-1]))))))
+}
+
+#Estimates Mean Absolute Scaled Error given a model or two vectors
+mase = function(x, y) {
+    result <- NA
+    if (missing(y)) { #x is a model
+        result <- MASE(x$fitted, x$residuals+x$fitted)
+    } else { #x is the result of the prediction
+        result <- MASE(x, y)
+    }
+    return(sqrt(result))
+}
 
 normalize = function(x) {
   data.min = min(x)
@@ -51,9 +119,6 @@ log10_f = function(x) {
   return(log10(x))
 }
 
-
-
-
 checkError = function(predicted, real, type) {
   tab = table(factor(predicted, levels = levels(real)), real)
   print(paste("Error", type))
@@ -62,7 +127,6 @@ checkError = function(predicted, real, type) {
   error = 100 - (sum(diag(tab)))/length(predicted) * 100
   print(error)
 }
-
 
 hist.with.normal <- function (x, main="", xlabel=deparse(substitute(x)),path, ...)
 {
@@ -114,7 +178,6 @@ barplot.percent <- function(df,df.x,df.y,main="",xlabel=deparse(substitute(df.x)
   print(p)
 
 }
-
 
 barplot.facet <- function(df,df.x,df.y,main="",xlabel=deparse(substitute(df.x)),ylabel=deparse(substitute(df.y))){
   library(reshape2)
