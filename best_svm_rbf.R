@@ -1,3 +1,6 @@
+source("utils.R")
+source("regression_models.R")
+
 #Collect data
 data_set <- getData(percent_change_price=TRUE,
     percent_change_volume_over_last_wk=TRUE,
@@ -57,3 +60,4 @@ xdata <- seq(1:length(real_values))
 plot(xdata, real_values, col="blue", pch="*", lty=1,
     ylim=c(min(real_values, prediction),max(real_values, prediction)) )
 points(xdata, prediction, col="red", pch="*")
+points(xdata, training$percent_change_next_weeks_price, col="yellow", pch="*")

@@ -1,3 +1,6 @@
+source("utils.R")
+source("regression_models.R")
+
 #Collect data
 data_set <- getData(percent_change_price=TRUE,
     percent_change_volume_over_last_wk=TRUE,
