@@ -1,3 +1,4 @@
+library(plotly)
 source("utils.R")
 source("regression_models.R")
 
