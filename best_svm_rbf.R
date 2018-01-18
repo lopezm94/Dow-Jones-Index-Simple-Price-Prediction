@@ -3,7 +3,9 @@ source("utils.R")
 source("regression_models.R")
 
 #Collect data
-data_set <- getData(percent_change_price=TRUE,
+data_set <- getData(
+    stock=TRUE,
+    percent_change_price=TRUE,
     percent_change_volume_over_last_wk=TRUE,
     days_to_next_dividend=TRUE,
     percent_return_next_dividend=TRUE)
@@ -61,8 +63,6 @@ xdata <- seq(1:length(real_values))
 #plot(xdata, real_values, col="blue", pch="*", lty=1,
 #    ylim=c(min(real_values, prediction),max(real_values, prediction)) )
 #points(xdata, prediction, col="red", pch="*")
-#points(xdata, training$percent_change_next_weeks_price, col="yellow", pch="*")
-
 
 plot_ly(x = xdata, y = real_values, name = 'Real values', type = 'scatter', mode = 'markers') %>%
   add_trace(y = prediction, name = 'Predictions', mode = 'markers') %>%
