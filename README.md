@@ -8,20 +8,17 @@ This repository contains the application of five common machine learning models 
 - Ridge Regression
 - One Hidden Layer MLP
 
-To see the process of finding the best model from all the types of models, execute in R's CLI:
+To see the process of finding the best model from all the types of models, execute the following file in R:
 
-```R
-source("find_best_model.R")
-```
+- `find_best_model.R`
 
-You can check for each individual method what's the best parameters for them executing:
+You can check for each individual method what are the best parameters for them executing:
 
-```R
-source("best_svm.R")
-source("best_svm_rbf.R")
-source("best_linear_regression.R")
-source("best_ridge_regression.R")
-source("best_mlp.R")
-```
+
+- `best_svm.R`
+- `best_svm_rbf.R`
+- `best_linear_regression.R`
+- `best_ridge_regression.R`
+- `best_mlp.R`
 
 For each one of these also a visualization of the difference between the forecast and the real price will appear. All models are generated in `regression_models.R`.
